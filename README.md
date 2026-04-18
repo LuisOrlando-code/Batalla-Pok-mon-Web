@@ -69,10 +69,6 @@ daño = floor((ataque + sp.ataque) / defensa * 20) + 5 + varianza(-5 a +5)
 
 ---
 
-## 🎮 Demo
-
-![demo1](demo1.png)
-![demo2](demo2.png)
 
 ## 👤 Autor
 
