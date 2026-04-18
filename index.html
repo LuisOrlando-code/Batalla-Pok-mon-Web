@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Batalla Pokémon</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --red: #e3350d;
+      --dark-red: #9b1e04;
+      --yellow: #f7d02c;
+      --blue: #2c6be3;
+      --dark: #1a1a2e;
+      --darker: #0f0f1a;
+      --white: #f0f0f0;
+      --gray: #2a2a3e;
+      --green: #3ddc84;
+      --hp-green: #4caf50;
+      --hp-yellow: #ffeb3b;
+      --hp-red: #f44336;
+      --font-pixel: 'Press Start 2P', monospace;
+      --font-main: 'Nunito', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--darker);
+      color: var(--white);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    /* ── Fondo animado ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(227,53,13,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(44,107,227,0.12) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 860px;
+      padding: 16px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-family: var(--font-pixel);
+      font-size: clamp(14px, 3vw, 22px);
+      color: var(--yellow);
+      text-shadow: 3px 3px 0 var(--dark-red), 0 0 30px rgba(247,208,44,0.4);
+      letter-spacing: 2px;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { text-shadow: 3px 3px 0 var(--dark-red), 0 0 20px rgba(247,208,44,0.3); }
+      50%      { text-shadow: 3px 3px 0 var(--dark-red), 0 0 45px rgba(247,208,44,0.7); }
+    }
+
+    /* ── PANTALLA SELECCIÓN ── */
+    #screen-select {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      animation: fadeIn .5s ease;
+    }
+    #screen-select p {
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 420px;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 10px;
+      border: 2px solid var(--gray);
+      background: var(--gray);
+      color: var(--white);
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      outline: none;
+      transition: border .2s;
+    }
+    .search-box input:focus { border-color: var(--yellow); }
+    .search-box input::placeholder { color: #666; }
+
+    .btn {
+      padding: 14px 22px;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn:active { transform: scale(.95); }
+    .btn-primary {
+      background: var(--red);
+      color: var(--white);
+      box-shadow: 0 4px 0 var(--dark-red);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 0 var(--dark-red); transform: translateY(-2px); }
+    .btn-secondary {
+      background: var(--blue);
+      color: var(--white);
+      box-shadow: 0 4px 0 #1a3f8f;
+    }
+    .btn-secondary:hover { box-shadow: 0 6px 0 #1a3f8f; transform: translateY(-2px); }
+    .btn-attack {
+      background: var(--yellow);
+      color: var(--darker);
+      box-shadow: 0 4px 0 #b89a00;
+      font-size: 10px;
+      padding: 16px 32px;
+      width: 100%;
+    }
+    .btn-attack:hover { box-shadow: 0 6px 0 #b89a00; transform: translateY(-2px); }
+    .btn-attack:disabled {
+      background: #444;
+      color: #888;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #pokemon-preview {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      background: var(--gray);
+      border-radius: 16px;
+      padding: 20px 32px;
+      border: 2px solid #3a3a5e;
+    }
+    #pokemon-preview img { image-rendering: pixelated; width: 96px; height: 96px; }
+    #pokemon-preview .pname {
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      color: var(--yellow);
+      text-transform: capitalize;
+    }
+    #pokemon-preview .ptype {
+      font-size: 12px;
+      color: #aaa;
+      text-transform: capitalize;
+    }
+
+    /* ── ARENA DE BATALLA ── */
+    #screen-battle {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeIn .5s ease;
+    }
+
+    .battle-field {
+      background: linear-gradient(180deg, #1e2a1e 0%, #2a3a2a 40%, #3a4a2a 100%);
+      border-radius: 20px;
+      border: 2px solid #3a4a3a;
+      padding: 24px 32px;
+      position: relative;
+      overflow: hidden;
+      min-height: 280px;
+    }
+    .battle-field::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,0.3));
+    }
+
+    /* Pokémon enemigo (arriba-derecha) */
+    .enemy-side {
+      position: absolute;
+      top: 16px; right: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    /* Pokémon jugador (abajo-izquierda) */
+    .player-side {
+      position: absolute;
+      bottom: 24px; left: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .poke-name {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      text-transform: capitalize;
+      color: var(--white);
+    }
+    .poke-sprite {
+      image-rendering: pixelated;
+      width: 100px;
+      height: 100px;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+    }
+    .poke-sprite.shake {
+      animation: shake .4s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX(8px); }
+      60%      { transform: translateX(-6px); }
+      80%      { transform: translateX(6px); }
+    }
+    .poke-sprite.faint {
+      animation: faint .6s ease forwards;
+    }
+    @keyframes faint {
+      to { opacity: 0; transform: translateY(40px) rotate(15deg); }
+    }
+
+    .hp-bar-wrap {
+      background: var(--gray);
+      border-radius: 12px;
+      padding: 8px 14px;
+      min-width: 160px;
+      border: 2px solid #3a3a5e;
+    }
+    .hp-label {
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      color: #aaa;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .hp-track {
+      background: #111;
+      border-radius: 6px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .hp-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width .5s ease, background .5s ease;
+    }
+
+    /* ── PANEL BATALLA ── */
+    .battle-panel {
+      background: var(--gray);
+      border-radius: 16px;
+      border: 2px solid #3a3a5e;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #battle-log {
+      background: var(--darker);
+      border-radius: 10px;
+      padding: 12px 16px;
+      min-height: 72px;
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      line-height: 2;
+      color: var(--white);
+      border: 1px solid #2a2a3e;
+      overflow-y: auto;
+      max-height: 120px;
+    }
+    #battle-log .log-line { opacity: 0; animation: fadeIn .3s ease forwards; }
+    #battle-log .log-line.dmg  { color: var(--yellow); }
+    #battle-log .log-line.win  { color: var(--green); }
+    #battle-log .log-line.lose { color: var(--hp-red); }
+
+    /* ── RESULTADO ── */
+    #screen-result {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      text-align: center;
+      animation: fadeIn .5s ease;
+    }
+    #result-title {
+      font-family: var(--font-pixel);
+      font-size: clamp(16px, 4vw, 28px);
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+    }
+    #result-title.win  { color: var(--green); }
+    #result-title.lose { color: var(--hp-red); }
+    #result-sprite { image-rendering: pixelated; width: 128px; height: 128px; }
+    #result-msg {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: #aaa;
+      line-height: 2;
+    }
+
+    /* ── LOADING ── */
+    #loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .pokeball-spin {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, var(--red) 50%, var(--white) 50%);
+      border: 3px solid var(--darker);
+      animation: spin 1s linear infinite;
+      position: relative;
+    }
+    .pokeball-spin::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--white);
+      border: 3px solid var(--darker);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: #aaa;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .error-msg {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: var(--red);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>⚔️ BATALLA POKÉMON</h1>
+  </header>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div class="pokeball-spin"></div>
+    <p id="loading-text">Cargando...</p>
+  </div>
+
+  <!-- SELECCIÓN -->
+  <div id="screen-select">
+    <p>Elige tu Pokémon y<br/>enfrenta a la CPU</p>
+    <div class="search-box">
+      <input type="text" id="poke-input" placeholder="ej: pikachu" maxlength="30"/>
+      <button class="btn btn-primary" onclick="buscarPokemon()">Buscar</button>
+    </div>
+    <p id="select-error" class="error-msg"></p>
+    <div id="pokemon-preview">
+      <img id="preview-sprite" src="" alt=""/>
+      <span class="pname" id="preview-name"></span>
+      <span class="ptype" id="preview-type"></span>
+    </div>
+    <button class="btn btn-secondary" id="btn-batalla" style="display:none" onclick="iniciarBatalla()">
+      ¡A Batallar!
+    </button>
+  </div>
+
+  <!-- BATALLA -->
+  <div id="screen-battle">
+    <div class="battle-field">
+      <!-- Enemigo -->
+      <div class="enemy-side">
+        <div class="hp-bar-wrap">
+          <div class="hp-label">
+            <span id="enemy-name">???</span>
+            <span id="enemy-hp-text">-- / --</span>
+          </div>
+          <div class="hp-track"><div class="hp-fill" id="enemy-hp-fill" style="width:100%;background:var(--hp-green)"></div></div>
+        </div>
+        <img class="poke-sprite" id="enemy-sprite" src="" alt=""/>
+      </div>
+      <!-- Jugador -->
+      <div class="player-side">
+        <img class="poke-sprite" id="player-sprite" src="" alt=""/>
+        <div class="hp-bar-wrap">
+          <div class="hp-label">
+            <span id="player-name">???</span>
+            <span id="player-hp-text">-- / --</span>
+          </div>
+          <div class="hp-track"><div class="hp-fill" id="player-hp-fill" style="width:100%;background:var(--hp-green)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="battle-panel">
+      <div id="battle-log"><div class="log-line">¡La batalla está por comenzar!</div></div>
+      <button class="btn btn-attack" id="btn-attack" onclick="playerAttack()">⚡ ATACAR</button>
+    </div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div id="screen-result">
+    <div id="result-title"></div>
+    <img id="result-sprite" src="" alt=""/>
+    <div id="result-msg"></div>
+    <button class="btn btn-primary" onclick="reiniciar()">Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+  // ── Estado del juego ──
+  let playerPoke = null;
+  let enemyPoke  = null;
+  let playerHP   = 0;
+  let enemyHP    = 0;
+  let playerMaxHP = 0;
+  let enemyMaxHP  = 0;
+  let turnoActivo = false;
+
+  const RANDOM_IDS = Array.from({length: 151}, (_, i) => i + 1);
+
+  // ── Pantallas ──
+  function showScreen(id) {
+    ['screen-select','screen-battle','screen-result','loading'].forEach(s => {
+      document.getElementById(s).style.display = 'none';
+    });
+    document.getElementById(id).style.display = 'flex';
+  }
+
+  // ── Buscar Pokémon ──
+  async function buscarPokemon() {
+    const val = document.getElementById('poke-input').value.trim().toLowerCase();
+    if (!val) return;
+    document.getElementById('select-error').textContent = '';
+    showScreen('loading');
+    document.getElementById('loading-text').textContent = 'Buscando Pokémon...';
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${val}`);
+      if (!res.ok) throw new Error('No encontrado');
+      const data = await res.json();
+      playerPoke = data;
+      showScreen('screen-select');
+      const preview = document.getElementById('pokemon-preview');
+      preview.style.display = 'flex';
+      document.getElementById('preview-sprite').src = data.sprites.front_default;
+      document.getElementById('preview-name').textContent = data.name;
+      document.getElementById('preview-type').textContent = '🏷️ ' + data.types.map(t => t.type.name).join(' / ');
+      document.getElementById('btn-batalla').style.display = 'block';
+    } catch(e) {
+      showScreen('screen-select');
+      document.getElementById('select-error').textContent = '❌ Pokémon no encontrado';
+    }
+  }
+
+  document.getElementById('poke-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') buscarPokemon();
+  });
+
+  // ── Iniciar batalla ──
+  async function iniciarBatalla() {
+    showScreen('loading');
+    document.getElementById('loading-text').textContent = 'La CPU está eligiendo...';
+    const randId = RANDOM_IDS[Math.floor(Math.random() * RANDOM_IDS.length)];
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${randId}`);
+      enemyPoke = await res.json();
+    } catch(e) {
+      enemyPoke = playerPoke; // fallback
+    }
+
+    // Calcular HP
+    playerMaxHP = getHP(playerPoke) * 2;
+    enemyMaxHP  = getHP(enemyPoke)  * 2;
+    playerHP    = playerMaxHP;
+    enemyHP     = enemyMaxHP;
+
+    // UI
+    document.getElementById('player-name').textContent  = playerPoke.name;
+    document.getElementById('enemy-name').textContent   = enemyPoke.name;
+    document.getElementById('player-sprite').src = playerPoke.sprites.back_default  || playerPoke.sprites.front_default;
+    document.getElementById('enemy-sprite').src  = enemyPoke.sprites.front_default;
+    updateHP('player');
+    updateHP('enemy');
+
+    document.getElementById('battle-log').innerHTML = '';
+    addLog(`¡${capitalize(enemyPoke.name)} apareció!`);
+    addLog(`¡Ve, ${capitalize(playerPoke.name)}!`);
+
+    turnoActivo = true;
+    document.getElementById('btn-attack').disabled = false;
+    showScreen('screen-battle');
+  }
+
+  // ── Stats ──
+  function getStat(poke, name) {
+    const s = poke.stats.find(s => s.stat.name === name);
+    return s ? s.base_stat : 50;
+  }
+  function getHP(poke)     { return getStat(poke, 'hp'); }
+  function getAtk(poke)    { return getStat(poke, 'attack'); }
+  function getDef(poke)    { return getStat(poke, 'defense'); }
+  function getSpAtk(poke)  { return getStat(poke, 'special-attack'); }
+
+  // ── Calcular daño ──
+  function calcDamage(attacker, defender) {
+    const atk = getAtk(attacker) + getSpAtk(attacker);
+    const def = Math.max(getDef(defender), 1);
+    const base = Math.floor((atk / def) * 20) + 5;
+    const variance = Math.floor(Math.random() * 11) - 5;
+    return Math.max(base + variance, 1);
+  }
+
+  // ── Ataque del jugador ──
+  async function playerAttack() {
+    if (!turnoActivo) return;
+    turnoActivo = false;
+    document.getElementById('btn-attack').disabled = true;
+
+    const dmg = calcDamage(playerPoke, enemyPoke);
+    enemyHP = Math.max(enemyHP - dmg, 0);
+    addLog(`${capitalize(playerPoke.name)} atacó por ${dmg} de daño!`, 'dmg');
+    document.getElementById('enemy-sprite').classList.remove('shake');
+    void document.getElementById('enemy-sprite').offsetWidth;
+    document.getElementById('enemy-sprite').classList.add('shake');
+    updateHP('enemy');
+
+    await delay(600);
+
+    if (enemyHP <= 0) {
+      document.getElementById('enemy-sprite').classList.add('faint');
+      await delay(700);
+      endGame(true);
+      return;
+    }
+
+    // Turno CPU
+    await delay(600);
+    const dmgCpu = calcDamage(enemyPoke, playerPoke);
+    playerHP = Math.max(playerHP - dmgCpu, 0);
+    addLog(`${capitalize(enemyPoke.name)} contraatacó por ${dmgCpu} de daño!`, 'dmg');
+    document.getElementById('player-sprite').classList.remove('shake');
+    void document.getElementById('player-sprite').offsetWidth;
+    document.getElementById('player-sprite').classList.add('shake');
+    updateHP('player');
+
+    await delay(600);
+
+    if (playerHP <= 0) {
+      document.getElementById('player-sprite').classList.add('faint');
+      await delay(700);
+      endGame(false);
+      return;
+    }
+
+    turnoActivo = true;
+    document.getElementById('btn-attack').disabled = false;
+  }
+
+  // ── Actualizar barra HP ──
+  function updateHP(who) {
+    const hp    = who === 'player' ? playerHP : enemyHP;
+    const maxHP = who === 'player' ? playerMaxHP : enemyMaxHP;
+    const pct   = Math.max((hp / maxHP) * 100, 0);
+    const fill  = document.getElementById(`${who}-hp-fill`);
+    const text  = document.getElementById(`${who}-hp-text`);
+    fill.style.width = pct + '%';
+    fill.style.background = pct > 50 ? 'var(--hp-green)' : pct > 20 ? 'var(--hp-yellow)' : 'var(--hp-red)';
+    text.textContent = `${hp} / ${maxHP}`;
+  }
+
+  // ── Log ──
+  function addLog(msg, cls = '') {
+    const log = document.getElementById('battle-log');
+    const line = document.createElement('div');
+    line.className = 'log-line' + (cls ? ' ' + cls : '');
+    line.textContent = '▶ ' + msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ── Fin del juego ──
+  function endGame(win) {
+    showScreen('screen-result');
+    const title = document.getElementById('result-title');
+    const sprite = document.getElementById('result-sprite');
+    const msg   = document.getElementById('result-msg');
+
+    if (win) {
+      title.textContent = '¡GANASTE!';
+      title.className = 'win';
+      sprite.src = playerPoke.sprites.front_default;
+      msg.textContent = `¡${capitalize(playerPoke.name)} derrotó a ${capitalize(enemyPoke.name)}!`;
+    } else {
+      title.textContent = '¡PERDISTE!';
+      title.className = 'lose';
+      sprite.src = enemyPoke.sprites.front_default;
+      msg.textContent = `${capitalize(enemyPoke.name)} fue demasiado fuerte...`;
+    }
+  }
+
+  // ── Reiniciar ──
+  function reiniciar() {
+    playerPoke = null; enemyPoke = null;
+    document.getElementById('poke-input').value = '';
+    document.getElementById('pokemon-preview').style.display = 'none';
+    document.getElementById('btn-batalla').style.display = 'none';
+    document.getElementById('select-error').textContent = '';
+    showScreen('screen-select');
+  }
+
+  // ── Utilidades ──
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
